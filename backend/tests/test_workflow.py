@@ -95,3 +95,19 @@ async def test_ai_intake_extracts_validated_fields(client,monkeypatch):
     res=client.post('/api/agent/parse-request',json={'text':'Need a 3 horsepower 230 volt 1750 rpm motor with a 0.875 inch shaft and 500 dollar ceiling.'})
     assert res.status_code==200
     assert res.json()['parsed']['shaft_inches']==0.875
+
+def test_public_demo_rejects_unauthorized_writes(client,monkeypatch):
+    monkeypatch.setenv('DEMO_ACCESS_TOKEN','test-only-operator-token')
+    request_id=rid(client)
+    assert client.get('/api/requests').status_code == 200
+    denied=client.post(f'/api/requests/{request_id}/analyze')
+    assert denied.status_code == 401
+    allowed=client.post(f'/api/requests/{request_id}/analyze',
+                        headers={'Authorization':'Bearer test-only-operator-token'})
+    assert allowed.status_code == 200
+
+def test_credential_backed_writes_fail_closed_without_operator_token(client,monkeypatch):
+    monkeypatch.delenv('DEMO_ACCESS_TOKEN',raising=False)
+    monkeypatch.setenv('PAYPAL_CLIENT_ID','test-only-client')
+    request_id=rid(client)
+    assert client.post(f'/api/requests/{request_id}/analyze').status_code == 503
