@@ -159,3 +159,14 @@ npm run build   # Next.js production build
 
 ## License
 MIT. See [LICENSE](LICENSE). Open-source submission includes original app code; PayPal and AG Grid remain trademarks/property of their respective owners.
+
+## Public hosted demo (November 2026)
+
+- Frontend: https://proofpayai.vercel.app
+- Backend: https://proofpay-sandbox-api.onrender.com
+- Read-only browsing is public. For interactive mutation, click **Unlock operator** in the top navigation and enter the **DEMO_ACCESS_TOKEN** supplied privately by the maintainer. The browser stores it in sessionStorage, not the repository.
+- The API validates this token on every POST/PUT/PATCH/DELETE under /api/. Do not put real customer data or production PayPal credentials in this demonstration.
+- For Devpost judging, supply a **demo-specific, temporary operator token privately** in the submission's testing instructions where access is restricted to judges, or use a dedicated sandbox-only hosted instance. Never post a reusable privileged token in a public README, screenshot, or YouTube description.
+- On Render configure `DEMO_ACCESS_TOKEN` in Environment, `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` from a **PayPal sandbox** REST app, and `AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY` for an OpenAI-compatible model. Never use production credentials or commit .env.
+- On Vercel set `NEXT_PUBLIC_API_URL=https://proofpay-sandbox-api.onrender.com` for production and preview, then redeploy if updated.
+- The free Render instance uses temporary SQLite storage; operations and audit history are not durable across restarts. Do not claim production-grade persistence. Sandbox payments still require a real sandbox buyer approval and PayPal capture.
