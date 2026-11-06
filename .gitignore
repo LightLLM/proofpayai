@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.sqlite3
+*.db
+# Node
+node_modules/
+.next/
+*.tsbuildinfo
+# Editor
+.DS_Store
+.vscode/
