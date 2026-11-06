@@ -1,7 +1,7 @@
 'use client';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {Activity,ArrowRight,BarChart3,Bell,Check,CheckCheck,ChevronDown,ChevronRight,CircleAlert,ClipboardCheck,Clock3,Factory,FileCheck2,History,LayoutDashboard,LockKeyhole,Plus,RefreshCw,Search,Shield,ShieldCheck,ShoppingCart,Sparkles,Truck,Wallet,Workflow,Zap} from 'lucide-react';
-import {call,Config,Detail,Offer,Overview,Purchase} from '../lib/api';
+import {call,Config,Detail,Offer,Overview,Purchase,saveOperatorToken,hasOperatorToken} from '../lib/api';
 import SpendGrid from '../components/SpendGrid';
 import PaypalCheckout from '../components/PaypalCheckout';
 
@@ -11,6 +11,12 @@ const statusLabel:Record<string,string>={NEW:'Needs analysis',ANALYZED:'Awaiting
 
 export default function Home(){
  const [list,setList]=useState<Purchase[]>([]),[selected,setSelected]=useState(''),[detail,setDetail]=useState<Detail|null>(null),[config,setConfig]=useState<Config|null>(null),[overview,setOverview]=useState<Overview|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[info,setInfo]=useState(''),[tab,setTab]=useState<'offers'|'audit'|'analytics'>('offers'),[creating,setCreating]=useState(false),[search,setSearch]=useState(''),[draftText,setDraftText]=useState('Find a replacement 3 HP motor rated 230 V, 1750 RPM, with a 0.875 inch shaft, with a maximum total spend of 500 USD.'),[draft,setDraft]=useState<{title:string;horsepower:number;voltage:number;rpm:number;shaft_inches:number;max_total_usd:number}|null>(null);
+ const [operatorReady,setOperatorReady]=useState(false);
+ useEffect(()=>setOperatorReady(hasOperatorToken()),[]);
+ function unlockOperator(){
+  const token=window.prompt('Enter the ProofPay sandbox operator token (provided privately by the demo owner):');
+  if(token?.trim()){saveOperatorToken(token);setOperatorReady(true);setInfo('Operator token saved for this browser session.');}
+ }
  const reload=useCallback(async(id?:string)=>{
   const [reqs,cfg,stats]=await Promise.all([call<Purchase[]>('/api/requests'),call<Config>('/api/config'),call<Overview>('/api/overview')]);
   setList(reqs);setConfig(cfg);setOverview(stats);
@@ -39,7 +45,7 @@ export default function Home(){
     <div className="sidebar-bottom"><div className="agent-on"><span className="status-dot"/> Decision policy engine active</div><div className="profile"><div className="avatar">PP</div><div><strong>Demo purchasing lead</strong><small>Authorized reviewer</small></div><ChevronDown size={15}/></div></div>
   </aside>
   <main className="main">
-   <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <strong>Command center</strong></div><div className="head-actions"><span className="sandbox-tag"><span className="status-dot"/> PAYPAL SANDBOX</span><button className="icon-btn" aria-label="Refresh dashboard" onClick={()=>reload().catch(e=>setError(String(e)))}><RefreshCw size={17}/></button><span className="header-avatar">PP</span></div></header>
+   <header className="topbar"><div className="crumb">Workspace <ChevronRight size={14}/> <strong>Command center</strong></div><div className="head-actions"><span className="sandbox-tag"><span className="status-dot"/> PAYPAL SANDBOX</span><button type="button" onClick={unlockOperator} title="Enter demo operator token" style={{border:'1px solid #CBD5E1',borderRadius:8,padding:'7px 10px',fontSize:12,fontWeight:600}}>{operatorReady?'Operator enabled':'Unlock operator'}</button><button className="icon-btn" aria-label="Refresh dashboard" onClick={()=>reload().catch(e=>setError(String(e)))}><RefreshCw size={17}/></button><span className="header-avatar">PP</span></div></header>
    <div className="content"><div className="headline"><div><p className="eyebrow"><span className="eyebrow-dot"/> PROCUREMENT INTELLIGENCE / COMMAND CENTER</p><h1>Good to see you <span className="hand">✳</span></h1><p>Make better purchasing decisions. Move faster, with full control.</p></div><button className="primary" onClick={()=>setCreating(true)}><Plus size={17}/> New purchase request</button></div>
    {error&&<div className="alert"><CircleAlert size={17}/>{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
    {info&&<div className="success"><CheckCheck size={17}/>{info}<button onClick={()=>setInfo('')}>Dismiss</button></div>}
