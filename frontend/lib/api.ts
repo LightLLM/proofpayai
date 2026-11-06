@@ -7,8 +7,18 @@ export type Detail=Purchase & {offers:Offer[];audit:AuditEvent[];order:Order|nul
 export type Config={paypal_configured:boolean;paypal_client_id:string;ai_configured:boolean;sandbox_only:boolean};
 export type Overview={requests:number;approved:number;completed:number;total_spend_usd:number;orders:Order[]};
 export const API=process.env.NEXT_PUBLIC_API_URL||'http://localhost:8000';
+export const operatorKey = 'proofpay_demo_operator_token';
+export function saveOperatorToken(token:string){
+ if(typeof window!=='undefined') sessionStorage.setItem(operatorKey,token.trim());
+}
+export function hasOperatorToken():boolean{
+ return typeof window!=='undefined' && Boolean(sessionStorage.getItem(operatorKey));
+}
 export async function call<T>(path:string, options?:RequestInit):Promise<T>{
- const res=await fetch(`${API}${path}`,{...options,headers:{'Content-Type':'application/json',...options?.headers},cache:'no-store'});
+ const token=typeof window!=='undefined'?sessionStorage.getItem(operatorKey):null;
+ const headers:Record<string,string>={'Content-Type':'application/json'};
+ if(options?.method && options.method.toUpperCase()!=='GET' && token) headers['Authorization']='Bearer '+token;
+ const res=await fetch(`${API}${path}`,{...options,headers:{...headers,...options?.headers},cache:'no-store'});
  if(!res.ok){const data=await res.json().catch(()=>({detail:'Request failed'}));throw new Error(data.detail||`HTTP ${res.status}`)}
  return res.json();
 }
