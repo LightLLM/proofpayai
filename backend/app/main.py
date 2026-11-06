@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+import hmac
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from . import core
@@ -11,7 +13,34 @@ async def lifespan(app:FastAPI):
     yield
 
 app=FastAPI(title='ProofPay AI Sandbox API',version='0.1.0',lifespan=lifespan)
-app.add_middleware(CORSMiddleware,allow_origins=[x.strip() for x in os.getenv('CORS_ORIGINS','http://localhost:3000').split(',')],allow_methods=['GET','POST'],allow_headers=['Content-Type'])
+app.add_middleware(CORSMiddleware,allow_origins=[x.strip() for x in os.getenv('CORS_ORIGINS','http://localhost:3000').split(',')],allow_methods=['GET','POST'],allow_headers=['Content-Type','Authorization'])
+
+@app.middleware('http')
+async def demo_write_guard(request: Request, call_next):
+    """Require explicit operator access before changing requests or payments.
+
+    In local sandbox-only mode without credentials, seeded sample workflows
+    may be edited freely. Once external credentials exist, a demo token is
+    mandatory and all mutating endpoints are protected.
+    """
+    if request.method in ('POST','PUT','PATCH','DELETE') and request.url.path.startswith('/api/'):
+        token = os.getenv('DEMO_ACCESS_TOKEN', '')
+        external_credentials = bool(
+            os.getenv('PAYPAL_CLIENT_ID') or os.getenv('PAYPAL_CLIENT_SECRET')
+            or os.getenv('AI_API_KEY')
+        )
+        if token:
+            supplied = request.headers.get('authorization', '')
+            expected = 'Bearer ' + token
+            if not hmac.compare_digest(supplied, expected):
+                return JSONResponse({'detail':'Demo operator access required'}, status_code=401)
+        elif external_credentials:
+            return JSONResponse(
+                {'detail':'Set DEMO_ACCESS_TOKEN before enabling credential-backed writes'},
+                status_code=503
+            )
+    return await call_next(request)
+
 
 class RequestIn(BaseModel):
     title:str=Field(min_length=4,max_length=140)
